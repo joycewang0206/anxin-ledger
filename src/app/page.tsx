@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertModal } from "@/components/AlertModal";
+import { BackupReminder } from "@/components/BackupReminder";
 import { MonthNav } from "@/components/MonthNav";
 import { SAVED_MESSAGES, SuccessBanner } from "@/components/SuccessBanner";
 import { PageTitle, ProgressBar, Stat } from "@/components/ui";
@@ -38,6 +39,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     <>
       <AlertModal data={modal} />
       <SuccessBanner message={saved ? (SAVED_MESSAGES[saved] ?? null) : null} />
+      <BackupReminder hasData={recent.length > 0 || debts.length > 0} />
       <PageTitle>本月的錢，一眼看清楚</PageTitle>
       <MonthNav month={month} basePath="/" />
 
