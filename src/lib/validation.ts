@@ -34,9 +34,10 @@ export function validateEntry(kind: EntryKind, input: EntryInput): EntryResult {
 
   let category = typeof input.category === "string" ? input.category.trim() : "";
   const allowed: readonly string[] = kind === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  if (kind === "income" && category === "__custom__") {
+  if (category === "__custom__") {
     category = typeof input.customCategory === "string" ? input.customCategory.trim() : "";
-    if (!category) errors.category = "請輸入收入項目名稱";
+    if (!category) errors.category = kind === "income" ? "請輸入收入項目名稱" : "請輸入支出分類名稱";
+    else if (kind === "expense" && category === DEBT_CATEGORY) errors.category = "債務還款請到「債務管理」記錄";
     else if (category.length > CUSTOM_CATEGORY_MAX) errors.category = `名稱請在 ${CUSTOM_CATEGORY_MAX} 個字以內`;
   } else if (!category) {
     errors.category = kind === "income" ? "請選擇收入項目" : "請選擇支出分類";

@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// 手機版底部固定導覽列：5 個大按鈕。
+// 手機版底部固定導覽列：4 個大按鈕。
 const ITEMS = [
   { href: "/", label: "首頁", icon: "🏠", match: (p: string) => p === "/" },
   { href: "/add", label: "記帳", icon: "✏️", match: (p: string) => ["/add", "/income", "/expense", "/records"].some((x) => p.startsWith(x)) },
   { href: "/debts", label: "債務", icon: "👛", match: (p: string) => p.startsWith("/debts") },
-  { href: "/report", label: "報表", icon: "📊", match: (p: string) => p.startsWith("/report") },
   { href: "/settings", label: "設定", icon: "⚙️", match: (p: string) => p.startsWith("/settings") },
 ];
 

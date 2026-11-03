@@ -22,7 +22,7 @@ function check(name, ok, detail = "") {
 }
 
 const WIDTHS = [320, 375, 390, 430, 768, 1024, 1440];
-const PAGES = ["/", "/add", "/income/new", "/expense/new", "/records", "/report", "/settings", "/debts", "/debts/new"];
+const PAGES = ["/", "/add", "/income/new", "/expense/new", "/records", "/settings", "/debts", "/debts/new"];
 
 async function newCtx(browser, width, height = 800) {
   const mobile = width < 768;
@@ -102,7 +102,7 @@ async function addEntry(page, kind, category, amount) {
     const r = ctx.request;
     const home = await r.get("/", { maxRedirects: 0 });
     check("未登入：首頁導向登入頁", home.status() >= 300 && home.status() < 400 && (home.headers()["location"] || "").includes("/login"), `status ${home.status()}`);
-    for (const p of ["/debts", "/records", "/report", "/settings", "/income/new"]) {
+    for (const p of ["/debts", "/records", "/settings", "/income/new"]) {
       const x = await r.get(p, { maxRedirects: 0 });
       check(`未登入：${p} 不能直接看`, x.status() >= 300 && x.status() < 400);
     }
@@ -160,7 +160,7 @@ async function addEntry(page, kind, category, amount) {
   check("還沒有家庭的帳號：備份匯出回 403", earlyApi.status() === 403, `status ${earlyApi.status()}`);
   await createHousehold(m, "測試之家", "爸爸");
   check("建立家庭：進入首頁", new URL(m.url()).pathname === "/", m.url());
-  check("手機：登入後底部導覽列出現（5 個按鈕）", (await m.locator('nav[aria-label="手機主選單"] a').count()) === 5);
+  check("手機：登入後底部導覽列出現（4 個按鈕）", (await m.locator('nav[aria-label="手機主選單"] a').count()) === 4);
 
   // 預算 30,000
   await m.goto("/settings");
@@ -174,7 +174,7 @@ async function addEntry(page, kind, category, amount) {
   check("驗收：新增薪水 40,000，首頁收入顯示正確", incomeShown);
 
   // 支出 24,000 -> 80%
-  await addEntry(m, "expense", "吃飯買菜", 24000);
+  await addEntry(m, "expense", "生活費", 24000);
   let dlg = m.locator('[role="alertdialog"]');
   check("驗收：支出 24,000 → 顯示預算使用 80% 提醒", (await dlg.count()) === 1 && /快要超過/.test(await dlg.innerText()), (await dlg.allInnerTexts()).join("|").slice(0, 80));
   await m.screenshot({ path: path.join(SHOTS, "390-alert-80.png") });
@@ -182,12 +182,12 @@ async function addEntry(page, kind, category, amount) {
   check("提醒：按「我知道了」後視窗關閉", (await dlg.count()) === 0);
 
   // 支出 6,000 -> 100%
-  await addEntry(m, "expense", "水電瓦斯", 6000);
+  await addEntry(m, "expense", "機場停車費", 6000);
   check("驗收：再支出 6,000 → 顯示預算已用完", /用完/.test(await dlg.innerText()));
   await m.getByRole("button", { name: "我知道了" }).click();
 
   // 支出 10,500 -> 總 40,500，同時超過預算與薪水
-  await addEntry(m, "expense", "休閒娛樂", 10500);
+  await addEntry(m, "expense", "生活費", 10500);
   const txt = await dlg.innerText();
   check("驗收：同時超過預算與薪水 → 只有一個提醒視窗", (await dlg.count()) === 1);
   check("驗收：單一視窗同時列出兩種超支與金額", /預算/.test(txt) && /收入/.test(txt) && /10,500/.test(txt) && /500/.test(txt), txt.replace(/\s+/g, " ").slice(0, 160));
@@ -323,7 +323,7 @@ async function addEntry(page, kind, category, amount) {
     check("手機：底部導覽列 ≥64px、使用 safe-area-inset-bottom、不遮住內容", problems.length === 0, problems.join(" | "));
     await m.goto("/");
     const labels = (await m.locator('nav[aria-label="手機主選單"] a').allInnerTexts()).map((t) => t.replace(/\s+/g, "").replace(/[^一-鿿]/g, ""));
-    check("手機：底部導覽順序為 首頁/記帳/債務/報表/設定", labels.join(",") === "首頁,記帳,債務,報表,設定", labels.join(","));
+    check("手機：底部導覽順序為 首頁/記帳/債務/設定", labels.join(",") === "首頁,記帳,債務,設定", labels.join(","));
     await m.getByRole("link", { name: /記帳/ }).last().click();
     await m.waitForURL(/\/add/);
     check("手機：點「記帳」進入記收入／記支出選擇頁", await m.getByText("記收入").first().isVisible());
@@ -333,7 +333,7 @@ async function addEntry(page, kind, category, amount) {
   {
     await m.setViewportSize({ width: 320, height: 640 });
     const wide = [];
-    for (const url of ["/records", "/report", "/debts"]) {
+    for (const url of ["/records", "/debts", "/debts/new"]) {
       await m.goto(url);
       await dismissModalIfAny(m);
       const t = await m.evaluate(() => [...document.querySelectorAll("table")].filter((t) => t.getBoundingClientRect().right > document.documentElement.clientWidth + 1).length);
@@ -386,7 +386,7 @@ async function addEntry(page, kind, category, amount) {
     check("電腦（1440px）：側邊導覽列顯示、底部導覽列隱藏", (await d.locator('nav[aria-label="主選單"]').isVisible()) && !(await d.locator('nav[aria-label="手機主選單"]').isVisible()));
     check("電腦與手機：看到相同的本月支出 45,500", /45,500/.test(await d.locator("main").innerText()));
     await m.setViewportSize({ width: 390, height: 844 });
-    await addEntry(m, "expense", "交通費", 123);
+    await addEntry(m, "expense", "出差費", 123);
     await dismissModalIfAny(m);
     await d.reload();
     await dismissModalIfAny(d);
@@ -418,7 +418,7 @@ async function addEntry(page, kind, category, amount) {
     await p2.waitForURL(/saved=joined/);
     await dismissModalIfAny(p2);
     check("家人加入後：看到和管理者同一份帳（本月支出 45,623）", /45,623/.test(await p2.locator("main").innerText()));
-    await addEntry(p2, "expense", "交通費", 77);
+    await addEntry(p2, "expense", "出差費", 77);
     await m.goto("/");
     await dismissModalIfAny(m);
     check("家人新增 77 元後：管理者重新整理即時看到 45,700", /45,700/.test(await m.locator("main").innerText()));

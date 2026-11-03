@@ -133,6 +133,17 @@ describe("家庭資料隔離（RLS）", () => {
 });
 
 describe("家庭成員與邀請碼", () => {
+  it("每個家庭最多 2 位成員，第三個人加不進去", async () => {
+    const a = await createTestDb();
+    const b = await newUser("second");
+    const c = await newUser("third");
+    expect(await joinHousehold(b.db, a.inviteCode, "媽媽")).toEqual({ ok: true });
+    await expect(joinHousehold(c.db, a.inviteCode, "路人")).rejects.toThrow(/2 位成員/);
+    expect(await count(c.db, "incomes")).toBe(0);
+    expect(await listMembers(a.db)).toHaveLength(2);
+  });
+
+
   it("錯誤的邀請碼加入失敗；連續錯 5 次會被暫時鎖住（連正確的也不行）", async () => {
     const a = await createTestDb();
     const u = await newUser("guess");
@@ -161,6 +172,8 @@ describe("家庭成員與邀請碼", () => {
     expect(fresh).not.toBe(a.inviteCode);
     const late = await newUser("late");
     expect(await joinHousehold(late.db, a.inviteCode, "晚到")).toMatchObject({ ok: false, error: "invalid_code" });
+    await expect(joinHousehold(late.db, fresh, "晚到")).rejects.toThrow(/2 位成員/); // 已滿 2 人
+    await removeMember(a.db, m.id);
     expect(await joinHousehold(late.db, fresh, "晚到")).toEqual({ ok: true });
   });
 
@@ -169,12 +182,12 @@ describe("家庭成員與邀請碼", () => {
     const m1 = await newUser("m1");
     const m2 = await newUser("m2");
     await joinHousehold(m1.db, a.inviteCode, "一");
-    await joinHousehold(m2.db, a.inviteCode, "二");
     await createIncome(a.db, entry({ amount: 999 }));
     expect(await count(m1.db, "incomes")).toBe(1);
 
     await removeMember(a.db, m1.id);
     expect(await count(m1.db, "incomes")).toBe(0);
+    await joinHousehold(m2.db, a.inviteCode, "二");
     expect((await m1.db.from("household_members").select("*")).data).toEqual([]);
 
     await leaveHousehold(m2.db);

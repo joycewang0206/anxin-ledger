@@ -20,7 +20,7 @@ export function EntryForm({ kind, initial, cancelHref }: { kind: "income" | "exp
   const errors = state?.errors ?? {};
   const cats: readonly string[] = kind === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
-  // 編輯時，如果原本的項目不在固定清單內（自訂的收入項目），預設選「其他（自行輸入）」
+  // 編輯時，如果原本的項目不在固定清單內（自訂的項目），預設選「其他（自行輸入）」
   const startCategory = v?.category ?? (cats.includes(initial.category) || !initial.category ? initial.category : "__custom__");
   const startCustom = v?.customCategory ?? (cats.includes(initial.category) ? "" : initial.category);
   const [selected, setSelected] = useState<string | null>(null);
@@ -47,16 +47,14 @@ export function EntryForm({ kind, initial, cancelHref }: { kind: "income" | "exp
               <span>{c}</span>
             </label>
           ))}
-          {kind === "income" && (
-            <label className="choice">
-              <input type="radio" name="category" value="__custom__" checked={current === "__custom__"} onChange={() => setSelected("__custom__")} />
-              <span>其他（自行輸入）</span>
-            </label>
-          )}
+          <label className="choice">
+            <input type="radio" name="category" value="__custom__" checked={current === "__custom__"} onChange={() => setSelected("__custom__")} />
+            <span>其他（自行輸入）</span>
+          </label>
         </div>
-        {kind === "income" && current === "__custom__" && (
+        {current === "__custom__" && (
           <div className="mt-3">
-            <label htmlFor="customCategory" className="field-label">請輸入收入項目名稱</label>
+            <label htmlFor="customCategory" className="field-label">請輸入{kind === "income" ? "收入項目" : "支出分類"}名稱</label>
             <input id="customCategory" name="customCategory" className="input" defaultValue={startCustom} maxLength={20} />
           </div>
         )}

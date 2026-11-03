@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertModal } from "@/components/AlertModal";
 import { DebtCard } from "@/components/DebtCard";
+import { DebtTable } from "@/components/DebtTable";
 import { SAVED_MESSAGES, SuccessBanner } from "@/components/SuccessBanner";
 import { ErrorBanner, PageTitle, ProgressBar } from "@/components/ui";
 import { currentMonthKey, todayStr } from "@/lib/dates";
@@ -88,6 +89,11 @@ export default async function DebtsPage({ searchParams }: { searchParams: Search
           <div className="mt-4">
             <Link href="/debts/new" className="btn btn-primary text-[1.3rem]">➕ 新增債務</Link>
           </div>
+
+          <section aria-label="全部債務表" className="mt-5">
+            <h2 className="mb-2 text-[1.3rem] font-extrabold">全部債務一覽表</h2>
+            <DebtTable debts={debts} />
+          </section>
 
           <section aria-label="還款中的債務" className="mt-5">
             <h2 className="mb-2 text-[1.3rem] font-extrabold">還款中（{active.length} 筆）</h2>

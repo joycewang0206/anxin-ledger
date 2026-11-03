@@ -180,11 +180,17 @@ describe("輸入驗證", () => {
   });
 
   it("13. 分類、日期驗證", () => {
-    const ok = { date: "2026-11-02", category: "吃飯買菜", amount: "100" };
+    const ok = { date: "2026-11-02", category: "生活費", amount: "100" };
     expect(validateEntry("expense", ok).ok).toBe(true);
     expect(validateEntry("expense", { ...ok, category: "" })).toMatchObject({ ok: false, errors: { category: "請選擇支出分類" } });
     expect(validateEntry("expense", { ...ok, date: "2026-02-30" })).toMatchObject({ ok: false, errors: { date: expect.any(String) } });
     expect(validateEntry("expense", { ...ok, category: "債務還款" }).ok).toBe(false);
+    expect(validateEntry("expense", { ...ok, category: "機場停車費" }).ok).toBe(true);
+    expect(validateEntry("expense", { ...ok, category: "出差費" }).ok).toBe(true);
+    expect(validateEntry("expense", { ...ok, category: "吃飯買菜" }).ok).toBe(false); // 舊分類已移除
+    expect(validateEntry("expense", { ...ok, category: "__custom__", customCategory: "寵物" })).toMatchObject({ ok: true, data: { category: "寵物" } });
+    expect(validateEntry("expense", { ...ok, category: "__custom__", customCategory: " " }).ok).toBe(false);
+    expect(validateEntry("expense", { ...ok, category: "__custom__", customCategory: "債務還款" }).ok).toBe(false);
     expect(validateEntry("income", { date: "2026-11-02", category: "__custom__", customCategory: "股利", amount: "100" })).toMatchObject({
       ok: true,
       data: { category: "股利" },

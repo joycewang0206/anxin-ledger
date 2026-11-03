@@ -15,6 +15,7 @@ export const DEBT_LOCKED_MESSAGE = "這筆是「債務還款」，請到「債�
 const ERROR_MESSAGES: Record<string, string> = {
   not_signed_in: "請先登入",
   already_member: "你已經加入一個家庭了",
+  household_full: "這個家庭已經有 2 位成員，不能再加入了",
   not_member: "你還沒有加入任何家庭，請先建立或加入家庭",
   owner_only: "只有家庭管理者可以這樣做",
   owner_cannot_leave: "管理者不能直接離開家庭。請先移除其他成員，或繼續使用這個家庭。",

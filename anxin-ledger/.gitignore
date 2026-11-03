@@ -1,0 +1,10 @@
+.next
+node_modules
+src/generated
+.env
+.env*.local
+next-env.d.ts
+tsconfig.tsbuildinfo
+e2e-shots
+.vercel
+.supabase
