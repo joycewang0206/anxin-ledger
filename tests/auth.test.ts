@@ -42,8 +42,8 @@ describe("金鑰不會外洩到前端", () => {
   it("沒有任何 NEXT_PUBLIC_ 開頭的機密變數", () => {
     for (const f of files) expect(fs.readFileSync(f, "utf8"), f).not.toMatch(/NEXT_PUBLIC_\w*(SERVICE|SECRET|PASSWORD)/i);
   });
-  it("財務資料不放在 localStorage 當資料來源（僅允許提醒視窗記錄「已看過」的簽章）", () => {
+  it("財務資料不放在 localStorage 當資料來源（僅允許提醒視窗的「已看過」簽章，以及備份提醒的「上次備份時間」）", () => {
     const users = files.filter((f) => /localStorage/.test(fs.readFileSync(f, "utf8"))).map((f) => path.basename(f));
-    expect(users).toEqual(["AlertModal.tsx"]);
+    expect(users.sort()).toEqual(["AlertModal.tsx", "BackupPanel.tsx", "BackupReminder.tsx"]);
   });
 });
