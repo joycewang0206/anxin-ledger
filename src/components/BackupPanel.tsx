@@ -3,6 +3,13 @@
 import { useRef, useState, useTransition } from "react";
 import { previewBackupAction, restoreBackupAction, type BackupPreview } from "@/app/actions";
 import type { ImportPlan } from "@/lib/services/backup";
+import { BACKUP_KEY } from "./BackupReminder";
+
+function markBackedUp() {
+  try {
+    localStorage.setItem(BACKUP_KEY, new Date().toISOString());
+  } catch {}
+}
 
 const LABELS: [keyof Omit<ImportPlan, "problems">, string][] = [
   ["incomes", "收入"],
@@ -57,11 +64,11 @@ export function BackupPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="card">
+      <section id="backup" className="card scroll-mt-4">
         <h3 className="mb-1 text-[1.3rem] font-extrabold">備份（存一份到安全的地方）</h3>
-        <p className="mb-3">備份檔包含所有收入、支出、預算和債務紀錄。建議每個月備份一次，存到隨身碟或雲端硬碟。</p>
+        <p className="mb-3">備份檔包含所有收入、支出、預算和債務紀錄。建議每週備份一次，存到隨身碟或雲端硬碟；超過 7 天沒備份，首頁會提醒你。</p>
         <div className="flex flex-wrap gap-3">
-          <a href="/api/export/json" className="btn btn-primary" download>⬇️ 下載備份檔（JSON）</a>
+          <a href="/api/export/json" className="btn btn-primary" download onClick={markBackedUp}>⬇️ 下載備份檔（JSON）</a>
           <a href="/api/export/csv" className="btn btn-secondary" download>⬇️ 下載 Excel 表格（CSV）</a>
         </div>
       </section>
