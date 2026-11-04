@@ -1,16 +1,13 @@
-import { BackupPanel } from "@/components/BackupPanel";
 import { BudgetForm } from "@/components/BudgetForm";
-import { HouseholdPanel } from "@/components/HouseholdPanel";
 import { LogoutButton } from "@/components/LogoutButton";
 import { MonthNav } from "@/components/MonthNav";
 import { SAVED_MESSAGES, SuccessBanner } from "@/components/SuccessBanner";
 import { PageTitle } from "@/components/ui";
 import { clearBudgetAction } from "@/app/actions";
 import { formatMonthZh } from "@/lib/dates";
-import { getDb, getMembership, getUser } from "@/lib/context";
+import { getDb } from "@/lib/context";
 import { formatYuan } from "@/lib/money";
 import { first, monthFrom, type SearchParams } from "@/lib/params";
-import { listMembers } from "@/lib/services/household";
 import { getBudget } from "@/lib/services/ledger";
 import { ErrorBanner } from "@/components/ui";
 
@@ -21,24 +18,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
   const month = monthFrom(sp.month);
   const saved = first(sp.saved);
   const db = await getDb();
-  const [me, user, members, budget] = await Promise.all([getMembership(), getUser(), listMembers(db), getBudget(db, month)]);
+  const budget = await getBudget(db, month);
 
   return (
     <>
       <SuccessBanner message={saved ? (SAVED_MESSAGES[saved] ?? null) : null} />
       <ErrorBanner message={first(sp.error)} />
-      <PageTitle>設定與備份</PageTitle>
-
-      {me && user && (
-        <section className="mb-8" aria-label="家庭成員">
-          <h2 className="mb-2 text-[1.4rem] font-extrabold">家庭成員</h2>
-          <HouseholdPanel me={me} user={user} members={members} />
-        </section>
-      )}
+      <PageTitle>設定</PageTitle>
 
       <section className="mb-8" aria-label="每月預算">
         <h2 className="mb-2 text-[1.4rem] font-extrabold">每月預算</h2>
-        <p className="mb-3">每個月的預算可以分開設定。沒有設定預算也能照常記帳，只是不會有預算提醒。</p>
+        <p className="mb-3">設定這個月最多想花多少錢。記帳後快花到、花到或超過預算，畫面會跳出提醒；支出超過收入時，也會用紅字提醒。每個月可以分開設定，沒有設定預算也能照常記帳。</p>
         <MonthNav month={month} basePath="/settings" />
         <div className="card mb-4 max-w-[34rem]">
           <p className="font-bold">{formatMonthZh(month)} 的預算</p>
@@ -51,11 +41,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
             <button type="submit" className="btn btn-secondary">清除這個月的預算</button>
           </form>
         )}
-      </section>
-
-      <section className="mb-8" aria-label="備份與還原">
-        <h2 className="mb-2 text-[1.4rem] font-extrabold">備份與還原</h2>
-        <BackupPanel />
       </section>
 
       <section aria-label="登出">

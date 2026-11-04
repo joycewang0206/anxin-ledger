@@ -2,14 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseBackup } from "@/lib/backup";
 import { todayStr } from "@/lib/dates";
 import { getDb } from "@/lib/context";
 import { ServiceError } from "@/lib/db";
 import { validateDebt } from "@/lib/debtInput";
 import { isValidMonthKey } from "@/lib/dates";
 import { validateBudget, validateEntry } from "@/lib/validation";
-import { importBackup, previewImport, type ImportPlan } from "@/lib/services/backup";
 import {
   createDebt,
   deleteDebt,
@@ -201,34 +199,4 @@ export async function removePaymentAction(fd: FormData): Promise<void> {
   }
   refresh();
   redirect(`/debts/${debtId}?saved=deleted`);
-}
-
-// ---------- 備份 ----------
-
-export type BackupPreview = { ok: true; plan: ImportPlan } | { ok: false; errors: string[] };
-
-export async function previewBackupAction(text: string): Promise<BackupPreview> {
-  const db = await getDb();
-  const parsed = parseBackup(text);
-  if (!parsed.ok) return parsed;
-  try {
-    return { ok: true, plan: await previewImport(db, parsed.backup) };
-  } catch (e) {
-    console.error("previewBackup failed", e);
-    return { ok: false, errors: ["讀取備份檔時發生問題，你的資料沒有被改動"] };
-  }
-}
-
-export async function restoreBackupAction(text: string): Promise<BackupPreview> {
-  const db = await getDb();
-  const parsed = parseBackup(text);
-  if (!parsed.ok) return parsed;
-  try {
-    const plan = await importBackup(db, parsed.backup, todayStr());
-    refresh();
-    return { ok: true, plan };
-  } catch (e) {
-    console.error("restoreBackup failed", e);
-    return { ok: false, errors: [e instanceof ServiceError ? e.message : "還原失敗，你原本的資料沒有被改動"] };
-  }
 }

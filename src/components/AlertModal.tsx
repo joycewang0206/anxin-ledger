@@ -48,6 +48,8 @@ const toneStyle = {
   warn: "border-expense bg-amber-50",
   ok: "border-ok bg-green-50",
 } as const;
+/** 超支、超過收入、逾期（danger）用紅色粗字，一眼就看得出來 */
+const toneText = { danger: "text-red-700", warn: "", ok: "" } as const;
 const toneIcon = { danger: "⚠️", warn: "🔔", ok: "🎉" } as const;
 
 /**
@@ -100,9 +102,9 @@ export function AlertModal({ data }: { data: AlertModalData | null }) {
         <div className="flex flex-col gap-3">
           {data.items.map((item) => (
             <section key={item.key} className={`rounded-2xl border-2 p-3 ${toneStyle[item.tone]}`}>
-              <h3 className="text-[1.3rem] font-extrabold">{item.title}</h3>
+              <h3 className={`text-[1.3rem] font-extrabold ${toneText[item.tone]}`}>{item.title}</h3>
               {item.lines.map((line) => (
-                <p key={line} className="text-[1.1rem] font-bold">
+                <p key={line} className={`text-[1.1rem] font-bold ${toneText[item.tone]}`}>
                   {line}
                 </p>
               ))}

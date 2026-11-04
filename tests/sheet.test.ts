@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeLedgerTotals, monthPaymentTotals, paymentSubtotal, withRemainingAfter, withRunningBalance } from "../src/lib/sheet";
 
-const ORDER = { income: ["薪水", "退休金", "其他收入"], expense: ["生活費", "機場停車費", "出差費"] };
+const ORDER = { income: ["薪水", "外送", "年終獎金"], expense: ["生活費", "機場停車費", "出差費"] };
 
 describe("收支表小計與總計", () => {
   const rows = [

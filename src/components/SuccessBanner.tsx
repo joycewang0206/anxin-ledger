@@ -34,7 +34,6 @@ export const SAVED_MESSAGES: Record<string, string> = {
   debt: "已經儲存債務資料",
   payment: "已經記錄這次還款，記帳本的支出也同步更新了",
   settled: "已經標記為還清",
-  restored: "已經還原備份資料",
   household: "家庭建立好了，把邀請碼給家人就能一起記帳",
   joined: "已經加入家庭，現在看到的是全家共用的帳本",
   code: "已經換成新的邀請碼，舊的邀請碼不能再使用",

@@ -9,7 +9,7 @@ export const NAV_ITEMS = [
   { href: "/expense/new", label: "新增支出", icon: "🧾" },
   { href: "/records", label: "收支紀錄", icon: "📋" },
   { href: "/debts", label: "債務管理", icon: "👛" },
-  { href: "/settings", label: "設定與備份", icon: "⚙️" },
+  { href: "/settings", label: "設定", icon: "⚙️" },
 ];
 
 export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {

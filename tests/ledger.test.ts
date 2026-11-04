@@ -29,7 +29,7 @@ const alertFor = async (ym = "2026-11") => computeLedgerAlert(ym, await getMonth
 describe("月統計", () => {
   it("1. 新增收入後總收入正確", async () => {
     await createIncome(t.db, entry({ category: "薪水", amount: 40000 }));
-    await createIncome(t.db, entry({ category: "退休金", amount: 5000 }));
+    await createIncome(t.db, entry({ category: "外送", amount: 5000 }));
     expect((await getMonthSummary(t.db, "2026-11")).income).toBe(45000);
   });
 

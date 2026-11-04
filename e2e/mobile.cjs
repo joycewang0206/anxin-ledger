@@ -106,10 +106,6 @@ async function addEntry(page, kind, category, amount) {
       const x = await r.get(p, { maxRedirects: 0 });
       check(`未登入：${p} 不能直接看`, x.status() >= 300 && x.status() < 400);
     }
-    const api = await r.get("/api/export/json", { maxRedirects: 0 });
-    check("未登入：備份匯出 API 回 401", api.status() === 401, `status ${api.status()}`);
-    const csv = await r.get("/api/export/csv", { maxRedirects: 0 });
-    check("未登入：CSV 匯出 API 回 401", csv.status() === 401, `status ${csv.status()}`);
     const man = await r.get("/manifest.webmanifest");
     const mj = man.ok() ? await man.json() : {};
     check("PWA：登入前就能讀到 manifest（可安裝）", man.ok() && mj.display === "standalone" && mj.icons?.length >= 3 && mj.theme_color, `display=${mj.display} icons=${mj.icons?.length}`);
@@ -156,8 +152,6 @@ async function addEntry(page, kind, category, amount) {
   check("註冊：新帳號先到「建立或加入家庭」頁，而不是直接看到帳本", /\/onboarding/.test(m.url()) && (await m.locator('nav[aria-label="手機主選單"]').count()) === 0);
   const early = await mctx.request.get("/records", { maxRedirects: 0 });
   check("還沒有家庭的帳號：看不到帳本頁面（導向建立家庭）", early.status() >= 300 && (early.headers()["location"] || "").includes("/onboarding"), `status ${early.status()}`);
-  const earlyApi = await mctx.request.get("/api/export/json", { maxRedirects: 0 });
-  check("還沒有家庭的帳號：備份匯出回 403", earlyApi.status() === 403, `status ${earlyApi.status()}`);
   await createHousehold(m, "測試之家", "爸爸");
   check("建立家庭：進入首頁", new URL(m.url()).pathname === "/", m.url());
   check("手機：登入後底部導覽列出現（4 個按鈕）", (await m.locator('nav[aria-label="手機主選單"] a').count()) === 4);
@@ -191,6 +185,7 @@ async function addEntry(page, kind, category, amount) {
   const txt = await dlg.innerText();
   check("驗收：同時超過預算與薪水 → 只有一個提醒視窗", (await dlg.count()) === 1);
   check("驗收：單一視窗同時列出兩種超支與金額", /預算/.test(txt) && /收入/.test(txt) && /10,500/.test(txt) && /500/.test(txt), txt.replace(/\s+/g, " ").slice(0, 160));
+  check("超支提醒：用紅字顯示", (await dlg.locator(".text-red-700").count()) >= 2);
   await m.screenshot({ path: path.join(SHOTS, "390-alert-double.png") });
   await m.getByRole("button", { name: "我知道了" }).click();
   check("首頁：支出合計 40,500", await m.getByText("40,500").first().isVisible());
@@ -198,21 +193,8 @@ async function addEntry(page, kind, category, amount) {
   // 債務
   await m.goto("/");
   await dismissModalIfAny(m);
-  await m.getByText("還沒有下載過備份").waitFor({ timeout: 8000 }).catch(() => {});
-  check("備份提醒：有資料但從沒備份 → 首頁出現提醒", await m.getByText("還沒有下載過備份").isVisible());
-  await m.goto("/settings");
-  await dismissModalIfAny(m);
-  await m.evaluate(() => localStorage.setItem("anxin:lastBackup", new Date().toISOString()));
-  await m.goto("/");
-  await dismissModalIfAny(m);
-  await m.waitForTimeout(1500);
-  check("備份提醒：剛備份過 → 提醒消失", !(await m.getByText(/沒有備份了|還沒有下載過備份/).isVisible().catch(() => false)));
-  await m.evaluate(() => localStorage.setItem("anxin:lastBackup", new Date(Date.now() - 9 * 86400000).toISOString()));
-  await m.goto("/");
-  await dismissModalIfAny(m);
-  await m.getByText("沒有備份了").waitFor({ timeout: 8000 }).catch(() => {});
-  check("備份提醒：9 天前備份 → 提醒「已經 9 天沒有備份了」", await m.getByText("已經 9 天沒有備份了").isVisible(), await m.locator("main").innerText().then((t) => t.slice(0, 80)));
-  await m.evaluate(() => localStorage.removeItem("anxin:lastBackup"));
+
+
   await m.goto("/debts/new");
   await m.fill("#name", "銀行貸款");
   await m.fill("#creditor", "某某銀行");
@@ -416,37 +398,12 @@ async function addEntry(page, kind, category, amount) {
     await dctx.close();
   }
 
-  // ---------- 6b. 家庭共享與資料隔離 ----------
+  // ---------- 6b. 資料隔離（另一個家庭完全看不到） ----------
   {
-    await m.goto("/settings");
-    const code = (await m.locator('[aria-label="邀請碼"]').innerText()).replace(/\s/g, "");
-    check("家庭：設定頁顯示邀請碼與成員", code.length === 10 && /爸爸/.test(await m.locator("main").innerText()), code);
     await m.goto("/debts");
     await dismissModalIfAny(m);
     const debtHref = await m.locator('a[href^="/debts/"]:not([href="/debts/new"])').first().getAttribute("href");
 
-    // 第二位家人：註冊、輸入錯誤邀請碼被擋、輸入正確邀請碼加入
-    const c2 = await newCtx(browser, 390, 844);
-    const p2 = await c2.newPage();
-    await signup(p2, MEMBER);
-    await joinHousehold(p2, "ZZZZZZZZZZ", "媽媽");
-    await p2.getByText("邀請碼不正確").waitFor({ timeout: 8000 }).catch(() => {});
-    check("加入家庭：錯誤的邀請碼會被拒絕", await p2.getByText("邀請碼不正確").isVisible());
-    await joinHousehold(p2, code, "媽媽");
-    await p2.waitForURL(/saved=joined/);
-    await dismissModalIfAny(p2);
-    check("家人加入後：看到和管理者同一份帳（本月支出 45,623）", /45,623/.test(await p2.locator("main").innerText()));
-    await addEntry(p2, "expense", "出差費", 77);
-    await m.goto("/");
-    await dismissModalIfAny(m);
-    check("家人新增 77 元後：管理者重新整理即時看到 45,700", /45,700/.test(await m.locator("main").innerText()));
-    await p2.goto("/debts");
-    await dismissModalIfAny(p2);
-    check("家人也看得到共用的債務", (await p2.locator('a[href^="/debts/"]:not([href="/debts/new"])').count()) >= 1);
-    await p2.goto("/settings");
-    check("家人（非管理者）看不到「更換邀請碼」，但有「離開這個家庭」", (await p2.getByRole("button", { name: /更換邀請碼/ }).count()) === 0 && (await p2.getByRole("button", { name: /離開這個家庭/ }).count()) === 1);
-
-    // 另一個家庭：什麼都看不到
     const c3 = await newCtx(browser, 390, 844);
     const p3 = await c3.newPage();
     await signup(p3, STRANGER);
@@ -454,26 +411,28 @@ async function addEntry(page, kind, category, amount) {
     await dismissModalIfAny(p3);
     const home3 = await p3.locator("main").innerText();
     check("另一個家庭：首頁看不到別人的金額", !/45,|40,000/.test(home3), home3.slice(0, 80).replace(/\s+/g, " "));
-    const exp3 = await (await c3.request.get("/api/export/json")).json();
-    check("另一個家庭：備份匯出是空的（沒有收入、支出、債務）", exp3.data.incomes.length === 0 && exp3.data.expenses.length === 0 && exp3.data.debts.length === 0 && exp3.data.debtPayments.length === 0);
-    const csv3 = await (await c3.request.get("/api/export/csv")).text();
-    check("另一個家庭：CSV 只有標題列", csv3.trim().split(/\r?\n/).length === 1);
     const other = await c3.request.get(debtHref);
     check("另一個家庭：直接輸入別人家的債務網址 → 找不到（404）", other.status() === 404, `status ${other.status()}`);
     await p3.goto("/records");
     const rec3 = await p3.locator("main").innerText();
-    check("另一個家庭：紀錄頁是空的（沒有紀錄、合計 0 元）", /沒有紀錄/.test(rec3) && /本月收入總計\s*0 元/.test(rec3) && /本月支出總計\s*0 元/.test(rec3));
+    check("另一個家庭：紀錄頁是空的（沒有紀錄、合計 0 元）", /還沒有紀錄/.test(rec3) && /本月收入總計\s*0 元/.test(rec3) && /本月支出總計\s*0 元/.test(rec3));
     await c3.close();
+  }
 
-    // 管理者移除成員後，對方立刻看不到資料
+  // ---------- 6c. 這次調整的畫面 ----------
+  {
     await m.goto("/settings");
-    await m.locator("li", { hasText: "媽媽" }).getByRole("button", { name: "移除" }).click();
-    await m.waitForURL(/saved=member-removed/);
-    const gone = await c2.request.get("/records", { maxRedirects: 0 });
-    check("被移除的成員：立刻看不到家庭資料（導向建立／加入家庭）", gone.status() >= 300 && (gone.headers()["location"] || "").includes("/onboarding"), `status ${gone.status()}`);
-    const goneApi = await c2.request.get("/api/export/json", { maxRedirects: 0 });
-    check("被移除的成員：備份匯出回 403", goneApi.status() === 403, `status ${goneApi.status()}`);
-    await c2.close();
+    const st = await m.locator("main").innerText();
+    check("設定頁：沒有「家庭成員」「備份」「邀請碼」，保留每月預算與登出", !/家庭成員|備份|還原|邀請碼/.test(st) && /每月預算/.test(st) && /登出/.test(st), st.slice(0, 60).replace(/\s+/g, " "));
+    await m.goto("/records");
+    await dismissModalIfAny(m);
+    const rc = await m.locator("main").innerText();
+    check("收支紀錄：沒有「建立者」「看哪一種」「查詢」", !/建立者|看哪一種|查詢/.test(rc));
+    const cell = await m.locator('[aria-label="收支明細表"] tbody th').first().innerText();
+    check("收支紀錄：分類（名目）顯示在日期下面", /^\d{2}\/\d{2}\s*\n\s*\S+/.test(cell.trim()), cell.replace(/\s+/g, " ").slice(0, 40));
+    await m.goto("/income/new");
+    const inc = await m.locator("label.choice").allInnerTexts();
+    check("新增收入：項目只有 薪水／外送／年終獎金／其他(自行輸入)", inc.length === 4 && /薪水/.test(inc[0]) && /外送/.test(inc[1]) && /年終獎金/.test(inc[2]) && /其他/.test(inc[3]), inc.join("|"));
   }
 
   // ---------- 7. 登出 ----------

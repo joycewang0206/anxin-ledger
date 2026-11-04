@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getMembership, requireUser } from "@/lib/context";
+import { requireUser } from "@/lib/context";
 import { ServiceError } from "@/lib/db";
-import { createHousehold, JOIN_ERRORS, joinHousehold, leaveHousehold, regenerateInviteCode, removeMember } from "@/lib/services/household";
+import { createHousehold, JOIN_ERRORS, joinHousehold } from "@/lib/services/household";
 import { createSupabase } from "@/lib/supabase/server";
 
 export type HouseholdState = { error?: string } | null;
@@ -47,41 +47,4 @@ export async function joinHouseholdAction(_p: HouseholdState, fd: FormData): Pro
   }
   refresh();
   redirect("/?saved=joined");
-}
-
-export async function regenerateCodeAction(): Promise<void> {
-  await requireUser();
-  try {
-    await regenerateInviteCode(await createSupabase());
-  } catch (e) {
-    console.error("regenerateCode failed", e);
-    redirect(`/settings?error=${encodeURIComponent(e instanceof ServiceError ? e.message : "更換失敗")}`);
-  }
-  refresh();
-  redirect("/settings?saved=code");
-}
-
-export async function removeMemberAction(fd: FormData): Promise<void> {
-  await requireUser();
-  try {
-    await removeMember(await createSupabase(), str(fd, "userId"));
-  } catch (e) {
-    console.error("removeMember failed", e);
-    redirect(`/settings?error=${encodeURIComponent(e instanceof ServiceError ? e.message : "移除失敗")}`);
-  }
-  refresh();
-  redirect("/settings?saved=member-removed");
-}
-
-export async function leaveHouseholdAction(): Promise<void> {
-  await requireUser();
-  if (!(await getMembership())) redirect("/onboarding");
-  try {
-    await leaveHousehold(await createSupabase());
-  } catch (e) {
-    console.error("leaveHousehold failed", e);
-    redirect(`/settings?error=${encodeURIComponent(e instanceof ServiceError ? e.message : "離開失敗")}`);
-  }
-  refresh();
-  redirect("/onboarding");
 }
