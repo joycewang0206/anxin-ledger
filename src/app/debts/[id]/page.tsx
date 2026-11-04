@@ -11,6 +11,7 @@ import { formatYuan } from "@/lib/money";
 import { first, type SearchParams } from "@/lib/params";
 import { loadAlertModal } from "@/lib/services/alerts";
 import { getDebt } from "@/lib/services/debts";
+import { paymentSubtotal, withRemainingAfter } from "@/lib/sheet";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,8 @@ export default async function DebtDetailPage({ params, searchParams }: { params:
   const shownUpcoming = upcoming.slice(0, UPCOMING_LIMIT);
   const hiddenCount = upcoming.length - shownUpcoming.length;
   const saved = first(sp.saved);
-  const payments = [...debt.payments].sort((a, b) => b.date.localeCompare(a.date));
+  const payments = withRemainingAfter(debt.openingPrincipal, debt.payments); // 由舊到新，逐筆算還完後剩餘本金
+  const sub = paymentSubtotal(debt.payments);
 
   return (
     <>
@@ -148,26 +150,73 @@ export default async function DebtDetailPage({ params, searchParams }: { params:
         {payments.length === 0 ? (
           <p className="card max-w-[44rem]">還沒有還款紀錄。還款後請按「我已經還款」，系統會同步記到本月支出。</p>
         ) : (
-          <ul className="flex max-w-[44rem] flex-col gap-3">
-            {payments.map((p) => (
-              <li key={p.id} className="card">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-bold">{formatDateZh(p.date)}</p>
-                  <p className="num">{formatYuan(p.amount)}</p>
-                </div>
-                <p className="muted">
-                  本金 {formatYuan(p.principal)}
-                  {p.interest > 0 && `・利息 ${formatYuan(p.interest)}`}
-                  {p.fee > 0 && `・其他費用 ${formatYuan(p.fee)}`}
-                </p>
-                {p.note && <p>{p.note}</p>}
-                <div className="mt-3 flex flex-wrap gap-3">
-                  <Link href={`/debts/payments/${p.id}/edit`} className="btn btn-secondary">修改</Link>
-                  <Link href={`/debts/payments/${p.id}/delete`} className="btn btn-secondary">刪除</Link>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="sheet-wrap">
+            <table className="sheet w-full table-fixed xl:table-auto">
+              <caption className="sr-only">{debt.name}還款紀錄</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="w-[40%] xl:hidden">日期</th>
+                  <th scope="col" className="hidden xl:table-cell">日期</th>
+                  <th scope="col" className="r hidden xl:table-cell">本金</th>
+                  <th scope="col" className="r hidden xl:table-cell">利息</th>
+                  <th scope="col" className="r hidden xl:table-cell">其他費用</th>
+                  <th scope="col" className="r">還款總額</th>
+                  <th scope="col" className="r">還完後剩餘本金</th>
+                  <th scope="col" className="hidden xl:table-cell">備註</th>
+                  <th scope="col" className="hidden xl:table-cell">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => {
+                  const actions = (
+                    <span className="flex flex-wrap gap-x-4">
+                      <Link href={`/debts/payments/${p.id}/edit`} className="inline-flex min-h-12 items-center underline">修改</Link>
+                      <Link href={`/debts/payments/${p.id}/delete`} className="inline-flex min-h-12 items-center underline">刪除</Link>
+                    </span>
+                  );
+                  return (
+                    <tr key={p.id}>
+                      <th scope="row" className="break-words xl:hidden">
+                        <span className="block font-bold">{formatDateZh(p.date)}</span>
+                        <span className="block font-normal">本金 {formatYuan(p.principal)}</span>
+                        {p.interest > 0 && <span className="block font-normal">利息 {formatYuan(p.interest)}</span>}
+                        {p.fee > 0 && <span className="block font-normal">其他費用 {formatYuan(p.fee)}</span>}
+                        {p.note && <span className="block font-normal">{p.note}</span>}
+                        <span className="block font-normal">{actions}</span>
+                      </th>
+                      <th scope="row" className="hidden font-bold xl:table-cell">{formatDateZh(p.date)}</th>
+                      <td className="r hidden xl:table-cell">{formatYuan(p.principal)}</td>
+                      <td className="r hidden xl:table-cell">{p.interest > 0 ? formatYuan(p.interest) : ""}</td>
+                      <td className="r hidden xl:table-cell">{p.fee > 0 ? formatYuan(p.fee) : ""}</td>
+                      <td className="r font-bold">{formatYuan(p.amount)}</td>
+                      <td className="r">{formatYuan(p.remainingAfter)}</td>
+                      <td className="hidden break-words xl:table-cell">{p.note ?? ""}</td>
+                      <td className="hidden xl:table-cell">{actions}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="total xl:hidden">
+                  <th scope="row">小計（{sub.count} 筆）</th>
+                  <td className="r">{formatYuan(sub.total)}</td>
+                  <td className="r">{formatYuan(debt.remainingPrincipal)}</td>
+                </tr>
+                <tr className="sub xl:hidden">
+                  <th scope="row" colSpan={3} className="font-normal">本金 {formatYuan(sub.principal)}　利息 {formatYuan(sub.interest)}　其他費用 {formatYuan(sub.fee)}（最右欄是目前剩餘本金）</th>
+                </tr>
+                <tr className="total hidden xl:table-row">
+                  <th scope="row">小計（{sub.count} 筆）</th>
+                  <td className="r">{formatYuan(sub.principal)}</td>
+                  <td className="r">{formatYuan(sub.interest)}</td>
+                  <td className="r">{formatYuan(sub.fee)}</td>
+                  <td className="r">{formatYuan(sub.total)}</td>
+                  <td className="r">{formatYuan(debt.remainingPrincipal)}</td>
+                  <td colSpan={2}>← 目前剩餘本金</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         )}
       </section>
     </>

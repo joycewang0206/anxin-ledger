@@ -16,6 +16,7 @@ export interface RecordRow {
   category: string;
   amount: number;
   note: string | null;
+  createdBy: string | null;
   debtPaymentId: string | null;
   debtId?: string | null;
 }
@@ -75,13 +76,13 @@ export async function listRecords(
   const rows: (RecordRow & { createdAt: Date })[] = [
     ...incomes.map((r) => {
       const i = toIncome(r);
-      return { id: i.id, kind: "income" as const, date: i.date, category: i.category, amount: i.amount, note: i.note, debtPaymentId: null, createdAt: i.createdAt };
+      return { id: i.id, kind: "income" as const, date: i.date, category: i.category, amount: i.amount, note: i.note, createdBy: i.createdBy, debtPaymentId: null, createdAt: i.createdAt };
     }),
     ...expenses.map((r) => {
       const e = toExpense(r);
       const pay = r.debt_payments as { debt_id: string } | null;
       return {
-        id: e.id, kind: "expense" as const, date: e.date, category: e.category, amount: e.amount, note: e.note,
+        id: e.id, kind: "expense" as const, date: e.date, category: e.category, amount: e.amount, note: e.note, createdBy: e.createdBy,
         debtPaymentId: e.debtPaymentId, debtId: pay?.debt_id ?? null, createdAt: e.createdAt,
       };
     }),

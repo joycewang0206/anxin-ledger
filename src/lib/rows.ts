@@ -8,6 +8,7 @@ export interface IncomeRow {
   category: string;
   amount: number;
   note: string | null;
+  createdBy: string | null;
   createdAt: Date;
 }
 export interface ExpenseRow extends IncomeRow {
@@ -28,7 +29,7 @@ export interface PaymentRow extends PaymentLike {
 type R = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export const toIncome = (r: R): IncomeRow => ({
-  id: r.id, date: r.date, category: r.category, amount: r.amount, note: r.note ?? null, createdAt: new Date(r.created_at),
+  id: r.id, date: r.date, category: r.category, amount: r.amount, note: r.note ?? null, createdBy: r.created_by ?? null, createdAt: new Date(r.created_at),
 });
 export const toExpense = (r: R): ExpenseRow => ({ ...toIncome(r), debtPaymentId: r.debt_payment_id ?? null });
 export const toDebt = (r: R): DebtRow => ({

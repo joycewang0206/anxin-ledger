@@ -196,6 +196,23 @@ async function addEntry(page, kind, category, amount) {
   check("首頁：支出合計 40,500", await m.getByText("40,500").first().isVisible());
 
   // 債務
+  await m.goto("/");
+  await dismissModalIfAny(m);
+  await m.getByText("還沒有下載過備份").waitFor({ timeout: 8000 }).catch(() => {});
+  check("備份提醒：有資料但從沒備份 → 首頁出現提醒", await m.getByText("還沒有下載過備份").isVisible());
+  await m.goto("/settings");
+  await dismissModalIfAny(m);
+  await m.evaluate(() => localStorage.setItem("anxin:lastBackup", new Date().toISOString()));
+  await m.goto("/");
+  await dismissModalIfAny(m);
+  await m.waitForTimeout(1500);
+  check("備份提醒：剛備份過 → 提醒消失", !(await m.getByText(/沒有備份了|還沒有下載過備份/).isVisible().catch(() => false)));
+  await m.evaluate(() => localStorage.setItem("anxin:lastBackup", new Date(Date.now() - 9 * 86400000).toISOString()));
+  await m.goto("/");
+  await dismissModalIfAny(m);
+  await m.getByText("沒有備份了").waitFor({ timeout: 8000 }).catch(() => {});
+  check("備份提醒：9 天前備份 → 提醒「已經 9 天沒有備份了」", await m.getByText("已經 9 天沒有備份了").isVisible(), await m.locator("main").innerText().then((t) => t.slice(0, 80)));
+  await m.evaluate(() => localStorage.removeItem("anxin:lastBackup"));
   await m.goto("/debts/new");
   await m.fill("#name", "銀行貸款");
   await m.fill("#creditor", "某某銀行");
@@ -363,6 +380,7 @@ async function addEntry(page, kind, category, amount) {
         p.evaluate(() => {
           const c = document.querySelector("main").cloneNode(true);
           c.querySelectorAll('[role="alertdialog"]').forEach((n) => n.parentElement.remove());
+          c.querySelectorAll('[role="status"]').forEach((n) => n.remove()); // 備份提醒會在載入後才出現，不算記帳資料
           return c.innerText;
         });
       const before = await pageText();
@@ -444,7 +462,7 @@ async function addEntry(page, kind, category, amount) {
     check("另一個家庭：直接輸入別人家的債務網址 → 找不到（404）", other.status() === 404, `status ${other.status()}`);
     await p3.goto("/records");
     const rec3 = await p3.locator("main").innerText();
-    check("另一個家庭：紀錄頁是空的（沒有紀錄、合計 0 元）", /沒有紀錄/.test(rec3) && /收入合計\s*0 元/.test(rec3) && /支出合計\s*0 元/.test(rec3));
+    check("另一個家庭：紀錄頁是空的（沒有紀錄、合計 0 元）", /沒有紀錄/.test(rec3) && /本月收入總計\s*0 元/.test(rec3) && /本月支出總計\s*0 元/.test(rec3));
     await c3.close();
 
     // 管理者移除成員後，對方立刻看不到資料

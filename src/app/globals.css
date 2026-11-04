@@ -92,6 +92,17 @@ body {
   .choice input:checked + span { background: var(--color-balance); border-color: var(--color-balance); color: #fff; }
   .choice input:focus-visible + span { outline: 4px solid #1e40af; outline-offset: 3px; }
 
+  /* Excel 風格表格：格線、表頭底色、小計/總計列、數字靠右 */
+  .sheet-wrap { overflow-x: auto; background: var(--color-paper); border: 1.5px solid var(--color-line); border-radius: 0.75rem; }
+  .sheet { width: 100%; border-collapse: collapse; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .sheet th, .sheet td { border: 1px solid var(--color-line); padding: 0.4rem 0.45rem; text-align: left; overflow-wrap: anywhere; vertical-align: top; }
+  .sheet thead th { background: var(--color-cream); border-bottom: 2px solid var(--color-ink); font-weight: 800; }
+  .sheet .r { text-align: right; overflow-wrap: normal; }
+  @media (min-width: 1280px) { .sheet .r { white-space: nowrap; } }
+  .sheet tbody tr:nth-child(even) td, .sheet tbody tr:nth-child(even) th { background: #fcfaf4; }
+  .sheet .sub td, .sheet .sub th { background: var(--color-cream); font-weight: 800; }
+  .sheet .total td, .sheet .total th { background: #efe7d3; border-top: 2px solid var(--color-ink); font-weight: 800; }
+  .sheet .neg { color: var(--color-alert); }
   .num { font-size: 1.5rem; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
   .num-xl { font-size: 2.1rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
   .muted { color: var(--color-muted); }
